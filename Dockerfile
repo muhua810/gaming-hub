@@ -4,7 +4,7 @@ WORKDIR /app/client
 COPY client/package.json client/package-lock.json* ./
 RUN npm install
 COPY client/ .
-RUN npm run build
+RUN npx vite build
 
 FROM node:20-alpine AS server-build
 
@@ -24,8 +24,7 @@ COPY --from=server-build /app/server/src ./src
 COPY --from=server-build /app/server/node_modules/.prisma ./node_modules/.prisma
 COPY --from=client-build /app/client/dist ./public
 
-RUN npx prisma db push --skip-generate
-
 EXPOSE 3000
 
-CMD ["node", "--import", "tsx", "src/index.ts"]
+# Push schema on start, then run server
+CMD npx prisma db push --skip-generate && node --import tsx src/index.ts
