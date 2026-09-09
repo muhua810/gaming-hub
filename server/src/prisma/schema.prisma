@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  avatar    String?
+  bio       String?
+  isOnline  Boolean  @default(false)
+  lastSeen  DateTime @default(now())
+  games     UserGame[]
+  ownedRooms Room[]  @relation("RoomOwner")
+  memberships RoomMember[]
+  messages  Message[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Game {
+  id       String     @id @default(cuid())
+  name     String     @unique
+  icon     String?
+  category String
+  users    UserGame[]
+  rooms    Room[]
+}
+
+model UserGame {
+  userId String
+  gameId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game   Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  @@id([userId, gameId])
+}
+
+model Room {
+  id         String       @id @default(cuid())
+  name       String
+  gameId     String
+  game       Game         @relation(fields: [gameId], references: [id])
+  ownerId    String
+  owner      User         @relation("RoomOwner", fields: [ownerId], references: [id])
+  maxMembers Int          @default(10)
+  isVoiceOn  Boolean      @default(true)
+  members    RoomMember[]
+  messages   Message[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model RoomMember {
+  userId   String
+  roomId   String
+  role     String   @default("member")
+  isMuted  Boolean  @default(false)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room     Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  joinedAt DateTime @default(now())
+  @@id([userId, roomId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  type      String   @default("text") // text | system | image
+  userId    String
+  roomId    String
+  user      User     @relation(fields: [userId], references: [id])
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
